@@ -1,0 +1,16 @@
+# Secrets - never commit
+.env
+.env.local
+*.pem
+secrets.*
+
+# Local outputs
+preview.html
+_demo/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Old overwrite-style CSV (replaced by data/history.csv)
+els_report.csv

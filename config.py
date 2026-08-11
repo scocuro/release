@@ -52,14 +52,8 @@ PRODUCTS = [
         "principal": 10_000_000,           # TODO 실제 투자원금
         "ki_barrier": 0.35,
         "ki_observation": "close",
-        # ⚠️ 쿠폰 충돌 — 기존 config에 같은 상품인데 두 값이 있었다.
-        #    EARLY_REDEMPTION_COUPONS: ^N225=0.229, ^GSPC=0.088, ^KS200=0.088
-        #    MATURITY_COUPONS:         세 종목 모두 0.229
-        #    지수 3종 worst-of / KI 35% 조건에 연 22.9%는 비정상적으로 높고,
-        #    연 8.8%가 지수형 ELS 통상 수준이다. 일단 0.088로 두었으나
-        #    투자설명서 확인 전까지는 '수령액' 숫자를 신뢰하지 말 것.
-        "coupon_annual": 0.0880,           # TODO ❗0.088 vs 0.229 확인 필요
-        "coupon_conflict": "지수형 쿠폰이 0.088/0.229로 충돌. 투자설명서 확인 요망",
+        # 쿠폰 확인 완료 (2026-08, 사용자 확인): 지수형 연 22.9%
+        "coupon_annual": 0.2290,
         "underlyings": {
             "^N225":  {"display": "니케이225", "strike": 72353.96},
             "^GSPC":  {"display": "S&P500",   "strike": 7472.79},
@@ -113,7 +107,7 @@ THRESHOLDS = {
     "hopeless": -0.10,   # -10% 미만 -> 조기상환 난망
     "ki_near":  0.10,    # KI까지 여유 +10% 이내 -> KI 근접 경보
     # 데이터 정합성: 종가/기준가가 이 범위를 벗어나면 분할·병합 의심
-    "sanity_hi": 2.50,
+    "sanity_hi": 2.50,   # MU는 액면분할 아닌 실제 상승으로 확인됨(2026-08 백필)
     "sanity_lo": 0.40,
     # 평가일 임박 알림
     "dday_alert": [5, 1],

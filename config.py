@@ -48,8 +48,8 @@ PRODUCTS = [
         "id": "A",
         "name": "니케이225 / S&P500 / KOSPI200",
         "note": "제455회 ELS (지수형)",
-        "issue_date": date(2026, 6, 18),   # TODO 역산값(3개월 스텝 3년물). 투자설명서로 확인
-        "principal": 10_000_000,           # TODO 실제 투자원금
+        "issue_date": date(2026, 6, 22),   # 확정 (사용자 확인 2026-08)
+        "principal": 5_000_000,            # 지수형 원금 500만원
         "ki_barrier": 0.35,
         "ki_observation": "close",
         # 쿠폰 확인 완료 (2026-08, 사용자 확인): 지수형 연 22.9%
@@ -78,8 +78,8 @@ PRODUCTS = [
         "id": "B",
         "name": "팔란티어 / 마이크론테크놀로지",
         "note": "종목형 (2-star)",
-        "issue_date": date(2026, 1, 9),    # TODO 역산값(6개월 스텝 3년물). 투자설명서로 확인
-        "principal": 10_000_000,           # TODO 실제 투자원금
+        "issue_date": date(2026, 1, 9),    # 확정 (사용자 확인 2026-08)
+        "principal": 3_000_000,            # 종목형 원금 300만원
         "ki_barrier": 0.25,                # 44.3725/177.49 = 86.2725/345.09 = 0.25
         "ki_observation": "close",
         "coupon_annual": 0.2200,

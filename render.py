@@ -235,11 +235,14 @@ def _product_card(view: ProductView, chart_cid=None) -> str:
 
     payout = ""
     if view.payout:
+        interest = view.payout - view.principal
         payout = (f'<div style="margin-top:8px;font-family:{MONO};font-size:12px;'
                   f'color:{C["muted"]};">조기상환 시 세전 '
                   f'<span style="color:{C["ink"]};font-weight:700;">'
-                  f'{view.payout:,.0f}원</span> '
-                  f'(원금 {view.principal:,.0f} × 누적 {view.coupon_cum*100:.2f}%)</div>')
+                  f'{view.payout:,.0f}원</span><br>'
+                  f'원금 {view.principal:,.0f} + 이자 {interest:,.0f} '
+                  f'(누적 {view.coupon_cum*100:.2f}%, 연 {view.coupon_annual*100:.1f}%)'
+                  f'</div>')
 
     verdict = ""
     if view.worst and view.worst.need_up:

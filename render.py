@@ -61,10 +61,14 @@ def _bar(level_pct, ki_ratio, trigger_ratio, color) -> str:
     """
     왼쪽 끝 = 0원, 오른쪽 끝 = 기준가.
     종가 >= 기준가 -> 눈금 없는 초록 100% 막대.
-    종가 <  기준가 -> 0~종가를 채우고, KI와 트리거 위치에 검정 세로줄.
+    종가 <  기준가 -> 0~종가를 채우고, KI와 트리거 위치에 검정 세로줄 + 라벨.
 
-    눈금을 3px짜리 별도 <td>로 만들면 Gmail이 퍼센트 셀을 100%로 정규화하면서
-    px 셀을 0으로 짓눌러 눈금이 사라진다. border-left로 그려야 확실히 남는다.
+    두 가지를 조심한다.
+    1) 눈금을 3px짜리 별도 <td>로 만들면 Gmail이 퍼센트 셀을 100%로 정규화하면서
+       px 셀을 0으로 짓눌러 눈금이 사라진다. border-left로 그려야 남는다.
+    2) 눈금이 채워진 구간 안에 들어가면 색에 파묻혀 어느 선인지 안 보인다.
+       (팔란티어 98.7%는 트리거 75%를 '넘어선' 건데 '닿은' 것처럼 읽힌다)
+       그래서 막대 바로 아래에 눈금 위치를 맞춘 라벨 행을 깐다.
     """
     if level_pct is None:
         return ""
@@ -76,41 +80,62 @@ def _bar(level_pct, ki_ratio, trigger_ratio, color) -> str:
         return (f'<td width="{w:.2f}%" bgcolor="{bg}" style="width:{w:.2f}%;'
                 f'height:{H};line-height:{H};font-size:0;{border}">&nbsp;</td>')
 
-    if level_pct >= 1.0:
-        cells = seg(100, C["safe"])
-    else:
-        cur = max(0.0, min(100.0, level_pct * 100))
-        marks = {round(ki_ratio * 100, 3)}
-        if trigger_ratio:
-            marks.add(round(trigger_ratio * 100, 3))
-        marks = {m for m in marks if 0 < m < 100}
+    def lab(w, text):
+        return (f'<td width="{w:.2f}%" style="width:{w:.2f}%;font-size:9.5px;'
+                f'line-height:1.2;color:{C["tick"]};white-space:nowrap;'
+                f'padding-top:3px;text-align:left;">{text}</td>')
 
-        stops = sorted({0.0, 100.0, round(cur, 3), *marks})
-        parts = []
+    if level_pct >= 1.0:
+        bar_row = seg(100, C["safe"])
+        lab_row = lab(100, "")
+    else:
+        # round()가 올림되면 채움 기준값이 stop보다 작아져서
+        # 채움이 '현재 종가'가 아니라 '직전 눈금'에서 멈춘다.
+        # 반올림한 값 하나만 쓰고, 그걸로만 비교한다.
+        cur = round(max(0.0, min(100.0, level_pct * 100)), 3)
+        marks = {}
+        kp = round(ki_ratio * 100, 3)
+        if 0 < kp < 100:
+            marks[kp] = f"KI {ki_ratio*100:.0f}%"
+        if trigger_ratio:
+            tp = round(trigger_ratio * 100, 3)
+            if 0 < tp < 100:
+                marks[tp] = f"트리거 {trigger_ratio*100:.0f}%"
+
+        stops = sorted({0.0, 100.0, cur, *marks})
+        bars, labs = [], []
         for a, b in zip(stops, stops[1:]):
             w = b - a
             if w <= 0:
                 continue
-            parts.append(seg(w,
-                             color if b <= cur + 1e-6 else C["track"],
-                             tick=(a in marks)))
-        cells = "".join(parts)
+            bars.append(seg(w, color if b <= cur else C["track"],
+                            tick=(a in marks)))
+            labs.append(lab(w, marks.get(a, "")))
+        bar_row, lab_row = "".join(bars), "".join(labs)
 
     return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
-            f'border="0" style="width:100%;border-collapse:separate;border-spacing:0;">'
-            f'<tr>{cells}</tr></table>')
+            f'border="0" style="width:100%;border-collapse:separate;border-spacing:0;'
+            f'table-layout:fixed;">'
+            f'<tr>{bar_row}</tr><tr>{lab_row}</tr></table>')
 
 
 def _bar_caption(level_pct, ki_ratio, trigger_ratio) -> str:
-    if level_pct is not None and level_pct >= 1.0:
-        txt = "종가가 기준가 이상"
+    """
+    막대만으로는 '눈금을 넘어선 것'과 '눈금에 막힌 것'이 헷갈린다.
+    한 문장으로 못 박는다.
+    """
+    if level_pct is None:
+        return ""
+    if level_pct >= 1.0:
+        txt = "종가가 기준가 이상 — 트리거 통과"
+    elif trigger_ratio and level_pct >= trigger_ratio:
+        txt = f"트리거 통과 · 막대 왼쪽 끝 0원 / 오른쪽 끝 기준가"
+    elif trigger_ratio:
+        txt = f"트리거 미달 · 막대 왼쪽 끝 0원 / 오른쪽 끝 기준가"
     else:
-        txt = (f'0원 ─ <span style="color:{C["tick"]};font-weight:700;">┃</span>KI '
-               f'{ki_ratio*100:.0f}% '
-               f'<span style="color:{C["tick"]};font-weight:700;">┃</span>트리거 '
-               f'{trigger_ratio*100:.0f}% ─ 기준가')
-    return (f'<div style="margin-top:5px;font-size:10px;color:{C["muted"]};'
-            f'letter-spacing:.01em;">{txt}</div>')
+        txt = "막대 왼쪽 끝 0원 / 오른쪽 끝 기준가"
+    return (f'<div style="margin-top:4px;font-size:10.5px;color:{C["muted"]};">'
+            f'{txt}</div>')
 
 
 # ── 상세 항목 (한 줄에 하나) ─────────────────────────────────────

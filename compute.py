@@ -73,6 +73,7 @@ class ProductView:
     coupon_cum: float | None = None
     payout: float | None = None
     principal: float | None = None
+    coupon_annual: float | None = None
     is_final: bool = False
     warnings: list[str] = field(default_factory=list)
 
@@ -135,7 +136,8 @@ def evaluate(product: dict, quotes: dict[str, Quote],
     view = ProductView(
         id=product["id"], name=product["name"], legs=legs,
         status=NODATA, is_final=is_final,
-        principal=product.get("principal"), warnings=warnings,
+        principal=product.get("principal"),
+        coupon_annual=product.get("coupon_annual"), warnings=warnings,
     )
 
     # worst-of = level_pct(종가/기준가)가 가장 낮은 기초자산

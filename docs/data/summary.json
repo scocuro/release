@@ -1,0 +1,155 @@
+{
+  "generated": "2026-08-11",
+  "summary": {
+    "counts": {
+      "likely": 1,
+      "watch": 0,
+      "hopeless": 1,
+      "ki_hit": 0,
+      "matured": 0,
+      "nodata": 0
+    },
+    "nearest_dday": 38,
+    "warn_count": 2
+  },
+  "comment": null,
+  "products": [
+    {
+      "id": "A",
+      "name": "니케이225 / S&P500 / KOSPI200",
+      "status": "hopeless",
+      "label": "조기상환 난망",
+      "icon": "🔴",
+      "eval_no": 1,
+      "eval_date": "2026-09-18",
+      "dday": 38,
+      "barrier": 0.85,
+      "coupon_cum": 0.022180821917808218,
+      "payout": 10221808.21917808,
+      "principal": 10000000,
+      "is_final": false,
+      "ki_ratio": 0.35,
+      "warnings": [
+        "설정: [A] 지수형 쿠폰이 0.088/0.229로 충돌. 투자설명서 확인 요망"
+      ],
+      "legs": [
+        {
+          "ticker": "^N225",
+          "display": "니케이225",
+          "strike": 72353.96,
+          "close": 66970.21875,
+          "obs_date": "2026-08-10",
+          "level_pct": 0.9255916158562709,
+          "buf_barrier": 0.08893131277208344,
+          "buf_ki": 1.6445474738750598,
+          "need_up": null,
+          "barrier_px": 61500.866,
+          "ki_px": 25323.886000000002,
+          "is_worst": false,
+          "ki_touched": false,
+          "ki_observed": true,
+          "ki_min_level": 0.8490784941971385,
+          "warn": null,
+          "error": null
+        },
+        {
+          "ticker": "^GSPC",
+          "display": "S&P500",
+          "strike": 7472.79,
+          "close": 7753.10986328125,
+          "obs_date": "2026-08-10",
+          "level_pct": 1.0375120755810414,
+          "buf_barrier": 0.22060244186004851,
+          "buf_ki": 1.9643202159458326,
+          "need_up": null,
+          "barrier_px": 6351.8715,
+          "ki_px": 2615.4764999999998,
+          "is_worst": false,
+          "ki_touched": false,
+          "ki_observed": true,
+          "ki_min_level": 0.9790386056613394,
+          "warn": null,
+          "error": null
+        },
+        {
+          "ticker": "^KS200",
+          "display": "KOSPI200",
+          "strike": 1477.22,
+          "close": 987.4000244140625,
+          "obs_date": "2026-08-11",
+          "level_pct": 0.6684177200512195,
+          "buf_barrier": -0.21362621170444762,
+          "buf_ki": 0.9097649144320561,
+          "need_up": 0.2716598834855337,
+          "barrier_px": 1255.637,
+          "ki_px": 517.0269999999999,
+          "is_worst": true,
+          "ki_touched": false,
+          "ki_observed": true,
+          "ki_min_level": 0.668417719770921,
+          "warn": null,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "팔란티어 / 마이크론테크놀로지",
+      "status": "likely",
+      "label": "조기상환 유력",
+      "icon": "🟢",
+      "eval_no": 2,
+      "eval_date": "2027-01-08",
+      "dday": 150,
+      "barrier": 0.75,
+      "coupon_cum": 0.2193972602739726,
+      "payout": 12193972.602739727,
+      "principal": 10000000,
+      "is_final": false,
+      "ki_ratio": 0.25,
+      "warnings": [
+        "마이크론테크놀로지(MU): 종가가 기준가의 249.5% — 액면분할/수정주가 불일치 의심. 발행사 공시 기준가 대조 요망"
+      ],
+      "legs": [
+        {
+          "ticker": "PLTR",
+          "display": "팔란티어",
+          "strike": 177.49,
+          "close": 175.22999572753906,
+          "obs_date": "2026-08-10",
+          "level_pct": 0.9872668642038371,
+          "buf_barrier": 0.31635581893844944,
+          "buf_ki": 2.9490674568153485,
+          "need_up": null,
+          "barrier_px": 133.1175,
+          "ki_px": 44.3725,
+          "is_worst": true,
+          "ki_touched": false,
+          "ki_observed": true,
+          "ki_min_level": 0.6043720603977689,
+          "warn": null,
+          "error": null
+        },
+        {
+          "ticker": "MU",
+          "display": "마이크론테크놀로지",
+          "strike": 345.09,
+          "close": 861.0,
+          "obs_date": "2026-08-10",
+          "level_pct": 2.4950013040076504,
+          "buf_barrier": 2.3266684053435336,
+          "buf_ki": 8.980005216030602,
+          "need_up": null,
+          "barrier_px": 258.8175,
+          "ki_px": 86.2725,
+          "is_worst": false,
+          "ki_touched": false,
+          "ki_observed": true,
+          "ki_min_level": 0.9325103248427946,
+          "warn": "종가가 기준가의 249.5% — 액면분할/수정주가 불일치 의심. 발행사 공시 기준가 대조 요망",
+          "error": null
+        }
+      ]
+    }
+  ]
+}

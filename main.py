@@ -1,89 +1,192 @@
-import csv
+"""
+ELS early-redemption monitor - main pipeline.
+
+    fetch -> compute -> append history -> chart -> AI comment -> mail -> export
+
+This is a fixed workflow, not an agent. Same order every day is what makes
+yesterday's email reproducible and traceable.
+
+    python main.py            fetch + send
+    python main.py --dry-run  no mail, just write preview.html
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
 from datetime import date
-from config import (
-    UNDERLYING_TICKERS,
-    STRIKE_PRICES,
-    EARLY_REDEMPTION_BARRIERS,
-    EARLY_REDEMPTION_COUPONS,
-    EVALUATION_DATES,
-    KNOCK_IN_BARRIERS,
-    EMAIL_CONFIG,
-    TICKER_DISPLAY_NAMES,   # ← 추가
-)
-from data_utils import fetch_last_close
-from email_utils import send_email
 
-def job():
+import config as cfg
+from ai_comment import log_comment, make_comment
+from chart_utils import buffer_chart, save_png
+from compute import (KI_HIT, ProductView, evaluate, preheader, summarize,
+                     to_history_rows)
+from data_utils import fetch_quote
+from email_utils import new_cid, send_email
+from render import render_html, render_text
+from store import append_history, load_history, load_state, save_state
+
+
+def collect(tickers):
+    quotes = {}
+    for t in tickers:
+        q = fetch_quote(t)
+        quotes[t] = q
+        mark = "ok" if q.ok else "FAIL"
+        print(f"  [{mark:4}] {t:8} {q.price if q.ok else q.error}  obs={q.obs_date}")
+    return quotes
+
+
+def export_dashboard(views, summary, comment, today):
+    """Static data for the GitHub Pages dashboard."""
+    os.makedirs(cfg.DOCS_DATA, exist_ok=True)
+
+    if os.path.exists(cfg.HISTORY_PATH):
+        with open(cfg.HISTORY_PATH, "r", encoding="utf-8-sig") as src, \
+             open(os.path.join(cfg.DOCS_DATA, "history.csv"), "w", encoding="utf-8") as dst:
+            dst.write(src.read())
+
+    payload = {
+        "generated": str(today),
+        "summary": summary,
+        "comment": comment,
+        "products": [{
+            "id": v.id, "name": v.name, "status": v.status, "label": v.label,
+            "icon": v.icon, "eval_no": v.eval_no,
+            "eval_date": str(v.eval_date) if v.eval_date else None,
+            "dday": v.dday, "barrier": v.barrier, "coupon_cum": v.coupon_cum,
+            "payout": v.payout, "principal": v.principal, "is_final": v.is_final,
+            "ki_ratio": next((l.ki_px / l.strike for l in v.legs if l.ki_px), None),
+            "warnings": v.warnings,
+            "legs": [{
+                "ticker": l.ticker, "display": l.display, "strike": l.strike,
+                "close": l.quote.price, "obs_date": str(l.quote.obs_date) if l.quote.obs_date else None,
+                "level_pct": l.level_pct, "buf_barrier": l.buf_barrier,
+                "buf_ki": l.buf_ki, "need_up": l.need_up,
+                "barrier_px": l.barrier_px, "ki_px": l.ki_px,
+                "is_worst": l.is_worst, "ki_touched": l.ki.get("touched"),
+                "ki_observed": l.ki.get("observed"), "ki_min_level": l.ki.get("min_level"),
+                "warn": l.warn, "error": l.quote.error,
+            } for l in v.legs],
+        } for v in views],
+    }
+    with open(os.path.join(cfg.DOCS_DATA, "summary.json"), "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    print(f"  대시보드 데이터 내보냄 -> {cfg.DOCS_DATA}")
+
+
+def detect_changes(views, state: dict) -> list[str]:
+    """Day-over-day status changes. Basis for a separate immediate alert."""
+    events = []
+    for v in views:
+        prev = state.get(v.id, {})
+        if prev.get("status") and prev["status"] != v.status:
+            events.append(f"[{v.id}] 상태 변화: {prev['status']} → {v.status}")
+        if v.status == KI_HIT and prev.get("status") != KI_HIT:
+            events.append(f"[{v.id}] KI 터치 발생")
+        if v.dday in cfg.THRESHOLDS["dday_alert"] and prev.get("dday") != v.dday:
+            events.append(f"[{v.id}] 평가일 D-{v.dday}")
+    return events
+
+
+def job(dry_run: bool = False) -> int:
     today = date.today()
-    today_str = today.strftime('%Y-%m-%d')
+    products = cfg.normalized_products()
 
-    # 1) 데이터 수집 및 계산
-    rows = []
-    for ticker in UNDERLYING_TICKERS:
-        strike      = STRIKE_PRICES[ticker]
-        close_price = fetch_last_close(ticker)
-        decline     = 1 - close_price / strike
+    print(f"■ ELS 모니터 {today}")
 
-        # 다음 평가차수
-        upcoming = next((i for i, d in EVALUATION_DATES[ticker].items() if d > today), None)
-        if not upcoming:
+    issues = cfg.validate()
+    for m in issues:
+        print(f"  ⚠️ {m}")
+
+    print("· 시세 수집")
+    quotes = collect(cfg.all_tickers())
+
+    history = load_history(cfg.HISTORY_PATH)
+    if not history:
+        print("  ! history.csv 없음 — KI 터치 판정이 '미확인'으로 나온다. "
+              "backfill.py를 1회 실행할 것")
+
+    print("· 상품 평가")
+    views: list[ProductView] = []
+    for p in products:
+        try:
+            v = evaluate(p, quotes, history, cfg.THRESHOLDS, today)
+        except Exception as e:                    # noqa: BLE001
+            print(f"  [FAIL] 상품 {p['id']} 평가 실패: {e}")
             continue
+        views.append(v)
+        print(f"  [{v.id}] {v.label}"
+              f"{f' · worst {v.worst.display} {v.worst.buf_barrier*100:+.2f}%' if v.worst and v.worst.buf_barrier is not None else ''}"
+              f"{f' · D-{v.dday}' if v.dday is not None else ''}")
 
-        # barrier 비율 (tuple인 경우 첫번째 요소 사용)
-        raw_barrier = EARLY_REDEMPTION_BARRIERS[ticker][upcoming]
-        barrier_ratio = raw_barrier[0] if isinstance(raw_barrier, tuple) else raw_barrier
+    if not views:
+        print("! 평가 가능한 상품이 없다. 중단")
+        return 1
 
-        # 숫자·퍼센트 포맷팅
-        close_s  = f"{close_price:.2f}"
-        strike_s = f"{strike:.2f}"
-        decline_s= "해당없음" if decline < 0 else f"{(decline*100):.2f}%"
-        ki_s     = f"{(strike * KNOCK_IN_BARRIERS[ticker]):.2f}"
-        barrier_s= f"{(barrier_ratio*100):.2f}%"
-        eval_date= EVALUATION_DATES[ticker][upcoming].strftime('%Y-%m-%d')
-        redemption_price = strike * barrier_ratio
-        redemption_s = f"{redemption_price:.2f}"
+    rows = []
+    for v in views:
+        rows += to_history_rows(v, today)
+    n = append_history(cfg.HISTORY_PATH, rows)
+    print(f"· history 적재 {n}행 (총 {len(history)+n}행)")
+    history = load_history(cfg.HISTORY_PATH)
 
-        rows.append([
-            TICKER_DISPLAY_NAMES.get(ticker, ticker),  # ← 변환된 이름 사용
-            close_s, strike_s, decline_s,
-            ki_s, str(upcoming), eval_date,
-            barrier_s, redemption_s
-        ])
+    for m in issues:
+        if "ANTHROPIC_API_KEY" not in m and views:
+            views[0].warnings.append(f"설정: {m}")
 
-    # 2) 마크다운 표 문자열 생성
-    header = [
-        "Ticker", "종가", "기준가격", "하락률",
-        "Knock-in", "평가차수", "평가일",
-        "Barrier", "상환가"
-    ]
-    sep = ["-" * len(h) for h in header]
+    summary = summarize(views)
+    pre = preheader(views, summary)
+    print(f"· 요약: {pre}")
 
-    table_lines = []
-    table_lines.append(" | ".join(header))
-    table_lines.append(" | ".join(sep))
-    for r in rows:
-        table_lines.append(" | ".join(r))
+    events = detect_changes(views, load_state(cfg.STATE_PATH))
+    for e in events:
+        print(f"  ▲ {e}")
+    save_state(cfg.STATE_PATH,
+               {v.id: {"status": v.status, "dday": v.dday, "date": str(today)} for v in views})
 
-    table_md = "\n".join(table_lines)
+    print("· 차트")
+    png = None
+    try:
+        png = buffer_chart(views, history)
+        if png:
+            save_png(png, os.path.join(cfg.DOCS_DATA, "buffer.png"))
+            print(f"  생성 {len(png):,} bytes")
+        else:
+            print("  건너뜀 (시계열 2개 미만 — 백필 필요)")
+    except Exception as e:                        # noqa: BLE001
+        print(f"  [FAIL] 차트 생성 실패, 계속 진행: {e}")
 
-    # 3) 콘솔 출력
-    print(table_md)
+    print("· AI 코멘트")
+    comment = make_comment(views, cfg.AI_CONFIG, today)
+    log_comment(os.path.join(cfg.BASE_DIR, "data", "comments.jsonl"), today, comment)
+    print(f"  {(comment or '(비활성)')[:80]}")
 
-    # 4) CSV 파일 생성 (첨부용)
-    output_file = 'els_report.csv'
-    with open(output_file, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        writer.writerow(header)
-        writer.writerows(rows)
-    print(f"\nCSV 파일 생성 완료: {output_file}")
+    cid = new_cid() if png else None
+    html = render_html(views, summary, pre, comment, cid, cfg.DASHBOARD_URL, today)
+    text = render_text(views, summary, pre, comment, today)
 
-    # 5) 이메일 전송
-    send_email(
-        subject=f"ELS Report ({today_str})",
-        body=table_md,
-        attachments=[("els_report.csv", output_file)],
-        config=EMAIL_CONFIG
-    )
+    export_dashboard(views, summary, comment, today)
+
+    subject = f"ELS Report ({today:%Y-%m-%d})"
+
+    if dry_run:
+        out = os.path.join(cfg.BASE_DIR, "preview.html")
+        with open(out, "w", encoding="utf-8") as f:
+            f.write(html)
+        print(f"· [dry-run] 메일 미전송. 미리보기 -> {out}")
+        return 0
+
+    print("· 메일")
+    send_email(subject=subject, html=html, text=text, config=cfg.EMAIL_CONFIG,
+               inline_images={cid: png} if png else None)
+    return 0
+
 
 if __name__ == "__main__":
-    job()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dry-run", action="store_true", help="메일 전송 없이 preview.html만 생성")
+    args = ap.parse_args()
+    sys.exit(job(dry_run=args.dry_run))

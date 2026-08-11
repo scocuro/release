@@ -1,0 +1,59 @@
+name: ELS daily report
+
+on:
+  schedule:
+    # 22:00 UTC = 익일 07:00 KST. UTC 일~목 = KST 월~금.
+    - cron: "0 22 * * 0,1,2,3,4"
+  workflow_dispatch:          # 수동 실행 버튼
+
+permissions:
+  contents: write             # history.csv / docs 커밋용
+
+concurrency:
+  group: els-daily
+  cancel-in-progress: false   # 리포트는 겹쳐도 취소하지 않는다
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # ⚠️ 이게 없으면 차트의 한글 축·범례가 전부 두부(□□□)로 나온다
+      - name: Install Korean fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-nanum
+          sudo fc-cache -fv > /dev/null
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run report
+        env:
+          ELS_SMTP_HOST:      ${{ secrets.ELS_SMTP_HOST }}
+          ELS_SMTP_PORT:      ${{ secrets.ELS_SMTP_PORT }}
+          ELS_SMTP_USER:      ${{ secrets.ELS_SMTP_USER }}
+          ELS_SMTP_PASSWORD:  ${{ secrets.ELS_SMTP_PASSWORD }}
+          ELS_MAIL_FROM:      ${{ secrets.ELS_MAIL_FROM }}
+          ELS_MAIL_TO:        ${{ secrets.ELS_MAIL_TO }}
+          ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+          ELS_DASHBOARD_URL:  ${{ vars.ELS_DASHBOARD_URL }}
+        run: python main.py
+
+      - name: Commit history & dashboard
+        run: |
+          git config user.name  "els-bot"
+          git config user.email "els-bot@users.noreply.github.com"
+          git add data/ docs/data/
+          if git diff --staged --quiet; then
+            echo "변경 없음 (휴장일일 수 있음)"
+          else
+            git commit -m "chore: ELS report $(date -u +%Y-%m-%d)"
+            git push
+          fi

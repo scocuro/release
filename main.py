@@ -1,13 +1,11 @@
 """
-ELS early-redemption monitor - main pipeline.
+ELS 조기상환 모니터 — 메인 파이프라인.
 
-    fetch -> compute -> append history -> chart -> AI comment -> mail -> export
+    수집 → 계산 → history 적재 → 차트 → AI 코멘트 → 메일 → 대시보드 데이터 내보내기
 
-This is a fixed workflow, not an agent. Same order every day is what makes
-yesterday's email reproducible and traceable.
-
-    python main.py            fetch + send
-    python main.py --dry-run  no mail, just write preview.html
+에이전트가 아니라 고정 워크플로다. 순서가 매일 같아야 재현과 추적이 된다.
+실행:  python main.py            (수집+메일)
+       python main.py --dry-run  (메일 안 보내고 HTML만 미리보기 저장)
 """
 
 from __future__ import annotations
@@ -20,7 +18,7 @@ from datetime import date
 
 import config as cfg
 from ai_comment import log_comment, make_comment
-from chart_utils import buffer_chart, save_png
+from chart_utils import product_charts, save_png
 from compute import (KI_HIT, ProductView, evaluate, preheader, summarize,
                      to_history_rows)
 from data_utils import fetch_quote
@@ -40,9 +38,10 @@ def collect(tickers):
 
 
 def export_dashboard(views, summary, comment, today):
-    """Static data for the GitHub Pages dashboard."""
+    """GitHub Pages 대시보드가 읽을 정적 데이터."""
     os.makedirs(cfg.DOCS_DATA, exist_ok=True)
 
+    # history.csv 복사
     if os.path.exists(cfg.HISTORY_PATH):
         with open(cfg.HISTORY_PATH, "r", encoding="utf-8-sig") as src, \
              open(os.path.join(cfg.DOCS_DATA, "history.csv"), "w", encoding="utf-8") as dst:
@@ -78,7 +77,7 @@ def export_dashboard(views, summary, comment, today):
 
 
 def detect_changes(views, state: dict) -> list[str]:
-    """Day-over-day status changes. Basis for a separate immediate alert."""
+    """전일 대비 상태 변화. 별도 즉시 알림의 근거가 된다."""
     events = []
     for v in views:
         prev = state.get(v.id, {})
@@ -126,6 +125,7 @@ def job(dry_run: bool = False) -> int:
         print("! 평가 가능한 상품이 없다. 중단")
         return 1
 
+    # history 적재 (중복 자동 방지)
     rows = []
     for v in views:
         rows += to_history_rows(v, today)
@@ -148,14 +148,13 @@ def job(dry_run: bool = False) -> int:
                {v.id: {"status": v.status, "dday": v.dday, "date": str(today)} for v in views})
 
     print("· 차트")
-    png = None
+    charts = {}
     try:
-        png = buffer_chart(views, history)
-        if png:
-            save_png(png, os.path.join(cfg.DOCS_DATA, "buffer.png"))
-            print(f"  생성 {len(png):,} bytes")
-        else:
-            print("  건너뜀 (시계열 2개 미만 — 백필 필요)")
+        charts = product_charts(views, history)
+        for pid, png in charts.items():
+            save_png(png, os.path.join(cfg.DOCS_DATA, f"level_{pid}.png"))
+        print(f"  생성 {len(charts)}건" if charts
+              else "  건너뜀 (시계열 2개 미만 — 백필 필요)")
     except Exception as e:                        # noqa: BLE001
         print(f"  [FAIL] 차트 생성 실패, 계속 진행: {e}")
 
@@ -164,13 +163,13 @@ def job(dry_run: bool = False) -> int:
     log_comment(os.path.join(cfg.BASE_DIR, "data", "comments.jsonl"), today, comment)
     print(f"  {(comment or '(비활성)')[:80]}")
 
-    cid = new_cid() if png else None
-    html = render_html(views, summary, pre, comment, cid, cfg.DASHBOARD_URL, today)
+    cids = {pid: new_cid() for pid in charts}
+    html = render_html(views, summary, pre, comment, cids, cfg.DASHBOARD_URL, today)
     text = render_text(views, summary, pre, comment, today)
 
     export_dashboard(views, summary, comment, today)
 
-    subject = f"ELS Report ({today:%Y-%m-%d})"
+    subject = f"ELS Report ({today:%Y-%m-%d})"     # ← 요청대로 제목 형식 유지
 
     if dry_run:
         out = os.path.join(cfg.BASE_DIR, "preview.html")
@@ -181,7 +180,7 @@ def job(dry_run: bool = False) -> int:
 
     print("· 메일")
     send_email(subject=subject, html=html, text=text, config=cfg.EMAIL_CONFIG,
-               inline_images={cid: png} if png else None)
+               inline_images={cids[pid]: png for pid, png in charts.items()})
     return 0
 
 

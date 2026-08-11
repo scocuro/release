@@ -33,7 +33,7 @@ C = {
     "breach": "#B23A2E",
     "muted":  "#6A7280",
     "track":  "#E7EAE4",
-    "tick":   "#12171F",
+    "tick":   "#000000",
 }
 
 STATUS_COLOR = {
@@ -58,36 +58,46 @@ def _num(v, nd=2):
 
 # ── 막대 ────────────────────────────────────────────────────────
 def _bar(level_pct, ki_ratio, trigger_ratio, color) -> str:
+    """
+    왼쪽 끝 = 0원, 오른쪽 끝 = 기준가.
+    종가 >= 기준가 -> 눈금 없는 초록 100% 막대.
+    종가 <  기준가 -> 0~종가를 채우고, KI와 트리거 위치에 검정 세로줄.
+
+    눈금을 3px짜리 별도 <td>로 만들면 Gmail이 퍼센트 셀을 100%로 정규화하면서
+    px 셀을 0으로 짓눌러 눈금이 사라진다. border-left로 그려야 확실히 남는다.
+    """
     if level_pct is None:
         return ""
 
-    H = "13px"
+    H = "16px"
 
-    def seg(w, bg):
+    def seg(w, bg, tick=False):
+        border = f"border-left:3px solid {C['tick']};" if tick else ""
         return (f'<td width="{w:.2f}%" bgcolor="{bg}" style="width:{w:.2f}%;'
-                f'height:{H};line-height:{H};font-size:0;">&nbsp;</td>')
+                f'height:{H};line-height:{H};font-size:0;{border}">&nbsp;</td>')
 
-    # 종가가 기준가 이상 -> 눈금 없이 꽉 찬 초록 막대
     if level_pct >= 1.0:
         cells = seg(100, C["safe"])
     else:
         cur = max(0.0, min(100.0, level_pct * 100))
-        marks = {round(ki_ratio * 100, 3), round(trigger_ratio * 100, 3)} if trigger_ratio \
-            else {round(ki_ratio * 100, 3)}
+        marks = {round(ki_ratio * 100, 3)}
+        if trigger_ratio:
+            marks.add(round(trigger_ratio * 100, 3))
+        marks = {m for m in marks if 0 < m < 100}
+
         stops = sorted({0.0, 100.0, round(cur, 3), *marks})
         parts = []
-        for i, p in enumerate(stops):
-            if p in marks and 0 < p < 100:
-                parts.append(f'<td width="3" bgcolor="{C["tick"]}" style="width:3px;'
-                             f'height:{H};line-height:{H};font-size:0;">&nbsp;</td>')
-            if i + 1 < len(stops):
-                w = stops[i + 1] - p
-                if w > 0:
-                    parts.append(seg(w, color if stops[i + 1] <= cur + 1e-6 else C["track"]))
+        for a, b in zip(stops, stops[1:]):
+            w = b - a
+            if w <= 0:
+                continue
+            parts.append(seg(w,
+                             color if b <= cur + 1e-6 else C["track"],
+                             tick=(a in marks)))
         cells = "".join(parts)
 
     return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
-            f'border="0" style="width:100%;border-collapse:collapse;">'
+            f'border="0" style="width:100%;border-collapse:separate;border-spacing:0;">'
             f'<tr>{cells}</tr></table>')
 
 

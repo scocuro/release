@@ -10,7 +10,7 @@
       "nodata": 0
     },
     "nearest_dday": 38,
-    "warn_count": 2
+    "warn_count": 0
   },
   "comment": null,
   "products": [
@@ -24,14 +24,12 @@
       "eval_date": "2026-09-18",
       "dday": 38,
       "barrier": 0.85,
-      "coupon_cum": 0.022180821917808218,
-      "payout": 10221808.21917808,
+      "coupon_cum": 0.05772054794520548,
+      "payout": 10577205.479452055,
       "principal": 10000000,
       "is_final": false,
       "ki_ratio": 0.35,
-      "warnings": [
-        "설정: [A] 지수형 쿠폰이 0.088/0.229로 충돌. 투자설명서 확인 요망"
-      ],
+      "warnings": [],
       "legs": [
         {
           "ticker": "^N225",
@@ -107,9 +105,7 @@
       "principal": 10000000,
       "is_final": false,
       "ki_ratio": 0.25,
-      "warnings": [
-        "마이크론테크놀로지(MU): 종가가 기준가의 249.5% — 액면분할/수정주가 불일치 의심. 발행사 공시 기준가 대조 요망"
-      ],
+      "warnings": [],
       "legs": [
         {
           "ticker": "PLTR",
@@ -146,7 +142,7 @@
           "ki_touched": false,
           "ki_observed": true,
           "ki_min_level": 0.9325103248427946,
-          "warn": "종가가 기준가의 249.5% — 액면분할/수정주가 불일치 의심. 발행사 공시 기준가 대조 요망",
+          "warn": null,
           "error": null
         }
       ]

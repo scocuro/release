@@ -1,0 +1,4 @@
+yfinance>=0.2.40
+pandas>=2.0
+matplotlib>=3.8
+anthropic>=0.40      # AI 코멘트 미사용 시 제거 가능

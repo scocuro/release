@@ -6,7 +6,7 @@
 <title>ELS 조기상환 모니터</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 :root{
@@ -20,9 +20,8 @@
 html,body{margin:0;padding:0}
 body{background:var(--ground);color:var(--ink);font-family:var(--sans);
   font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-.wrap{max-width:860px;margin:0 auto;padding:28px 18px 64px}
+.wrap{max-width:820px;margin:0 auto;padding:28px 18px 64px}
 
-/* ── 헤더 ── */
 .masthead{display:flex;align-items:flex-end;justify-content:space-between;
   gap:16px;padding-bottom:14px;border-bottom:2px solid var(--ink);flex-wrap:wrap}
 .masthead h1{margin:0;font-size:21px;font-weight:700;letter-spacing:-.02em}
@@ -30,10 +29,9 @@ body{background:var(--ground);color:var(--ink);font-family:var(--sans);
 .pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 7px;
   border:1px solid var(--rule);border-radius:2px;margin-left:5px;background:var(--surface)}
 
-/* ── 상품 카드 ── */
 .card{background:var(--surface);border:1px solid var(--rule);margin-top:18px}
 .card>.bar{height:3px}
-.card-head{padding:15px 18px 4px}
+.card-head{padding:15px 18px 6px}
 .eyebrow{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em}
 .card-head h2{margin:3px 0 0;font-size:17px;font-weight:700;letter-spacing:-.01em}
 .sched{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:5px}
@@ -41,56 +39,47 @@ body{background:var(--ground);color:var(--ink);font-family:var(--sans);
 .note{margin-top:6px;font-size:13px}
 .payout{margin-top:6px;font-family:var(--mono);font-size:12px;color:var(--muted)}
 
-/* ── 시그니처: 배리어 공통 기준선 ──
-   배리어 비율은 상품마다 다르지만(85% vs 75%) '배리어까지의 거리'는 비교 가능하다.
-   그래서 모든 행의 배리어를 트랙 정중앙에 정렬한다.
-   한 세로선 기준 좌/우만 보면 전 상품이 한 번에 읽힌다. */
-.legs{padding:14px 18px 18px;position:relative}
-.legs::before{content:"";position:absolute;left:calc(18px + (100% - 36px)*.5);
-  top:8px;bottom:34px;width:1px;
-  background:repeating-linear-gradient(to bottom,var(--deep) 0 4px,transparent 4px 8px)}
-.leg{position:relative;padding:9px 0;border-top:1px solid var(--rule)}
-.leg:first-child{border-top:0}
-.leg-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.leg-name{font-size:14px;font-weight:700}
+.legs{padding:6px 18px 16px}
+.leg{padding:15px 0 13px;border-top:1px solid var(--rule)}
+.leg-name{font-size:15px;font-weight:700}
+.leg-name .tk{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:400;margin-left:5px}
 .worst{font-family:var(--mono);font-size:9px;background:var(--deep);color:#fff;
   padding:1px 5px;border-radius:2px;margin-left:6px;letter-spacing:.06em;vertical-align:2px}
-.leg-val{font-family:var(--mono);font-size:15px;font-weight:600;white-space:nowrap}
-.leg-need{font-family:var(--mono);font-size:11px;color:var(--breach);margin-left:5px}
-.track{position:relative;height:22px;margin:7px 0 3px}
-.track .rail{position:absolute;left:0;right:0;top:10px;height:2px;background:var(--track)}
-.track .dot{position:absolute;top:4px;width:14px;height:14px;border-radius:50%;
-  margin-left:-7px;border:2px solid var(--surface);
-  transition:left .6s cubic-bezier(.2,.7,.2,1)}
-.leg-sub{font-family:var(--mono);font-size:11px;color:var(--muted);
-  display:flex;flex-wrap:wrap;gap:4px 12px}
-.scale{display:flex;justify-content:space-between;font-family:var(--mono);
-  font-size:10px;color:var(--muted);padding-top:6px;border-top:1px solid var(--rule)}
-.scale b{color:var(--deep);font-weight:600}
 
-.flag{margin:12px 18px 16px;padding:10px 12px;background:#FBF4E6;
-  border-left:3px solid var(--watch);font-size:12.5px;line-height:1.6}
-.flag ul{margin:6px 0 0;padding-left:17px}
+/* 막대: 왼쪽 끝 = 0원, 오른쪽 끝 = 기준가.
+   종가가 기준가 이상이면 눈금 없이 꽉 찬 초록 막대.
+   미만이면 트리거와 KI 위치에 눈금을 세우고 종가까지 채운다. */
+.bartrack{position:relative;height:13px;margin:10px 0 5px;background:var(--track);overflow:hidden}
+.barfill{position:absolute;left:0;top:0;bottom:0;transition:width .6s cubic-bezier(.2,.7,.2,1)}
+.tick{position:absolute;top:0;bottom:0;width:3px;margin-left:-1px;background:var(--ink)}
+.barcap{font-size:10.5px;color:var(--muted);letter-spacing:.01em}
+.barcap b{color:var(--ink)}
 
-/* ── 차트 ── */
-.chart-card{background:var(--surface);border:1px solid var(--rule);
-  margin-top:18px;padding:16px 18px 18px}
-.chart-head{display:flex;justify-content:space-between;align-items:baseline;
-  gap:12px;flex-wrap:wrap;margin-bottom:4px}
-.chart-head h2{margin:0;font-size:15px;font-weight:700}
-.chart-head p{margin:2px 0 0;font-size:12px;color:var(--muted)}
-.periods{display:flex;gap:4px}
+.rows{width:100%;border-collapse:collapse;margin-top:9px}
+.rows td{padding:5px 0;vertical-align:top}
+.rows td.k{font-size:12px;color:var(--muted);white-space:nowrap}
+.rows td.v{text-align:right;font-family:var(--mono);font-size:13px;font-weight:500;white-space:nowrap}
+.rows td.v.big{font-size:15px;font-weight:700}
+.rows .sub{font-family:var(--sans);font-size:11px;color:var(--muted);font-weight:400;margin-top:1px}
+.legwarn{margin-top:9px;padding:7px 9px;background:#FBF4E6;font-size:11.5px;
+  color:var(--breach);line-height:1.5}
+
+.chartbox{padding:0 18px 18px}
+.chartbox .t{font-size:12.5px;font-weight:700;border-top:1px solid var(--rule);padding-top:13px}
+.chartbox .s{font-size:11px;color:var(--muted);margin-top:2px}
+.canvas-wrap{position:relative;height:270px;margin-top:10px}
+.periods{display:flex;gap:4px;margin-top:9px}
 .periods button{font-family:var(--mono);font-size:11px;padding:4px 9px;cursor:pointer;
   background:var(--surface);border:1px solid var(--rule);color:var(--muted);border-radius:2px}
 .periods button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
 .periods button:focus-visible,a:focus-visible{outline:2px solid var(--deep);outline-offset:2px}
-.canvas-wrap{position:relative;height:300px;margin-top:12px}
 
+.flag{margin:0 18px 16px;padding:10px 12px;background:#FBF4E6;
+  border-left:3px solid var(--watch);font-size:12.5px;line-height:1.6}
+.flag ul{margin:6px 0 0;padding-left:17px}
 .ai{background:var(--surface);border:1px solid var(--rule);margin-top:18px;padding:15px 18px}
-.ai .eyebrow{margin-bottom:7px}
-.ai p{margin:0;font-size:13.5px;line-height:1.7;white-space:pre-wrap}
+.ai p{margin:7px 0 0;font-size:13.5px;line-height:1.7;white-space:pre-wrap}
 .ai small{display:block;margin-top:9px;font-size:11px;color:var(--muted)}
-
 footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--rule);
   font-size:11.5px;color:var(--muted);line-height:1.7}
 .state{background:var(--surface);border:1px solid var(--rule);padding:30px 20px;
@@ -100,65 +89,85 @@ footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--rule);
 
 @media (max-width:560px){
   .wrap{padding:20px 13px 48px}
-  .leg-top{flex-direction:column;gap:2px}
-  .canvas-wrap{height:240px}
+  .canvas-wrap{height:230px}
 }
-@media (prefers-reduced-motion:reduce){
-  .track .dot{transition:none}
-}
+@media (prefers-reduced-motion:reduce){ .barfill{transition:none} }
 </style>
 </head>
 <body>
 <div class="wrap">
-
   <header class="masthead">
     <h1>ELS 조기상환 모니터</h1>
     <div class="meta" id="meta">불러오는 중…</div>
   </header>
-
   <main id="main"></main>
-
   <footer>
-    여유율 = 종가 ÷ 기준선 − 1 (+ 기준선 위 / − 아래). worst-of = 기준가 대비 수준이 가장 낮은 기초자산.<br>
-    배리어 눈금은 상품별 배리어를 모두 중앙에 맞춰 정렬했다. 세로 점선 왼쪽이 미달, 오른쪽이 여유다.<br>
+    조기상환 트리거 = 해당 평가일에 이 가격 이상이어야 조기상환되는 기준가격.<br>
+    막대는 왼쪽 끝이 0원, 오른쪽 끝이 기준가다. 종가가 기준가 이상이면 눈금 없이 꽉 찬다.<br>
+    worst-of = 기준가 대비 종가가 가장 낮은 기초자산. 상환 여부는 worst-of가 결정한다.<br>
     관측일은 각 시장의 마지막 거래일이며 실행일과 다를 수 있다. 투자판단의 근거가 아닌 모니터링 자료다.
   </footer>
 </div>
 
 <script>
-const RANGE = 0.50;                 // 트랙 좌우 끝 = 배리어 ±50%
 const COLORS = ['#1F3A5F','#B23A2E','#0E7C6B','#B5820A','#5B4B8A'];
 const $ = s => document.querySelector(s);
 const pct = (v,d=2)=> v==null ? '—' : (v*100).toFixed(d)+'%';
 const spct= (v,d=2)=> v==null ? '—' : (v>=0?'+':'')+(v*100).toFixed(d)+'%';
 const num = (v,d=2)=> v==null ? '—' : v.toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});
 const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-
 const tone = b => b==null ? 'var(--muted)'
   : b>=0.10 ? 'var(--safe)' : b>=-0.10 ? 'var(--watch)' : 'var(--breach)';
 const statusColor = s => ({likely:'var(--safe)',watch:'var(--watch)',hopeless:'var(--breach)',
   ki_hit:'var(--ki)',matured:'var(--muted)',nodata:'var(--muted)'}[s]||'var(--muted)');
 
-function legRow(l){
-  const x = Math.max(0, Math.min(1, ((l.buf_barrier ?? 0) + RANGE) / (RANGE*2))) * 100;
+function row(k,v,cls='',sub=''){
+  return `<tr><td class="k">${k}</td><td class="v ${cls}">${v}${
+    sub?`<div class="sub">${sub}</div>`:''}</td></tr>`;
+}
+
+function legRow(l,p){
+  if (l.error) return `<div class="leg"><div class="leg-name">${esc(l.display)}
+    <span class="tk">${esc(l.ticker)}</span></div>
+    <div style="color:var(--breach);font-size:13px;margin-top:6px">수집 실패 — ${esc(l.error)}</div></div>`;
+
   const c = l.ki_touched ? 'var(--ki)' : tone(l.buf_barrier);
-  if (l.error) return `<div class="leg"><div class="leg-top"><span class="leg-name">${esc(l.display)}</span>
-    <span class="leg-val" style="color:var(--breach)">수집 실패</span></div>
-    <div class="leg-sub">${esc(l.error)}</div></div>`;
-  const kiTxt = l.ki_touched ? `KI 터치` : (l.ki_observed ? `최저 ${pct(l.ki_min_level,1)}` : 'KI 미확인');
+  const kiR = l.ki_px/l.strike, trR = l.barrier_px/l.strike;
+  const over = l.level_pct >= 1;
+  const fill = Math.max(0, Math.min(1, l.level_pct)) * 100;
+
+  const bar = over
+    ? `<div class="bartrack"><div class="barfill" style="width:100%;background:var(--safe)"></div></div>
+       <div class="barcap">종가가 기준가 이상</div>`
+    : `<div class="bartrack">
+         <div class="barfill" style="width:0;background:${c}" data-w="${fill}"></div>
+         <div class="tick" style="left:${kiR*100}%"></div>
+         <div class="tick" style="left:${trR*100}%"></div>
+       </div>
+       <div class="barcap">0원 ─ <b>┃</b>KI ${(kiR*100).toFixed(0)}%
+         <b>┃</b>트리거 ${(trR*100).toFixed(0)}% ─ 기준가</div>`;
+
+  const head = l.need_up
+    ? [`${spct(l.need_up)} 상승 필요`, `현재 트리거보다 ${(Math.abs(l.buf_barrier)*100).toFixed(2)}% 아래`]
+    : [`${spct(l.buf_barrier)} 여유`, '트리거 위 — 상환 조건 충족 중'];
+
   return `<div class="leg">
-    <div class="leg-top">
-      <span class="leg-name">${esc(l.display)}${l.is_worst?'<span class="worst">WORST</span>':''}</span>
-      <span class="leg-val" style="color:${c}">${spct(l.buf_barrier)}${
-        l.need_up?`<span class="leg-need">${spct(l.need_up)} 필요</span>`:''}</span>
-    </div>
-    <div class="track"><div class="rail"></div>
-      <div class="dot" style="left:50%;background:${c}" data-x="${x}"></div></div>
-    <div class="leg-sub">
-      <span>종가 ${num(l.close)}</span><span>기준가 ${num(l.strike)}</span>
-      <span>수준 ${pct(l.level_pct,1)}</span><span>KI여유 ${spct(l.buf_ki,1)}</span>
-      <span>${kiTxt}</span><span>관측 ${esc(l.obs_date)}</span>
-    </div>${l.warn?`<div class="leg-sub" style="color:var(--breach)">⚠️ ${esc(l.warn)}</div>`:''}
+    <div class="leg-name">${esc(l.display)}<span class="tk">${esc(l.ticker)}</span>${
+      l.is_worst?'<span class="worst">WORST</span>':''}</div>
+    ${bar}
+    <table class="rows">
+      ${row('종가', num(l.close), '', `${esc(l.obs_date)} 관측`)}
+      ${row('기준가', num(l.strike))}
+      ${row('기준가 대비 종가', `<span style="color:${c}">${pct(l.level_pct)}</span>`,'big')}
+      ${row('조기상환 트리거', num(l.barrier_px), '', `기준가의 ${(trR*100).toFixed(0)}%`)}
+      ${row('트리거까지', `<span style="color:${c}">${head[0]}</span>`, 'big', head[1])}
+      ${row('KI 가격', num(l.ki_px), '', `기준가의 ${(kiR*100).toFixed(0)}%`)}
+      ${row('KI까지', spct(l.buf_ki))}
+      ${row('KI 터치', l.ki_touched ? '<span style="color:var(--ki)">터치</span>'
+            : (l.ki_observed ? '<span style="color:var(--muted)">미터치</span>'
+                             : '<span style="color:var(--muted)">미확인</span>'))}
+    </table>
+    ${l.warn?`<div class="legwarn">⚠️ ${esc(l.warn)}</div>`:''}
   </div>`;
 }
 
@@ -168,13 +177,13 @@ function card(p){
   const w = legs.find(l=>l.is_worst);
   let note = '';
   if (w && w.need_up) note = `<div class="note" style="color:var(--breach)">${esc(w.display)} 기준 ${p.dday}일 내 ${(w.need_up*100).toFixed(1)}% 상승 필요</div>`;
-  else if (w && p.status==='likely') note = `<div class="note" style="color:var(--safe)">${esc(w.display)} 기준 배리어까지 ${(Math.abs(w.buf_barrier)*100).toFixed(1)}%p 여유</div>`;
+  else if (w && p.status==='likely') note = `<div class="note" style="color:var(--safe)">${esc(w.display)} 기준 트리거까지 ${(Math.abs(w.buf_barrier)*100).toFixed(1)}%p 여유</div>`;
   const sched = p.eval_date
-    ? `${p.eval_no}차 평가 ${p.eval_date} · D-${p.dday} · Barrier ${(p.barrier*100).toFixed(0)}%${p.is_final?' · 만기':''}`
+    ? `${p.eval_no}차 평가 ${p.eval_date} · D-${p.dday} · 트리거 기준가의 ${(p.barrier*100).toFixed(0)}%${p.is_final?' · 만기':''}`
     : '평가일정 종료';
   const payout = p.payout ? `<div class="payout">조기상환 시 세전 ${Math.round(p.payout).toLocaleString('ko-KR')}원 (누적 ${(p.coupon_cum*100).toFixed(2)}%)</div>` : '';
   const flags = p.warnings?.length
-    ? `<div class="flag"><b>점검 필요</b><ul>${p.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></div>` : '';
+    ? `<div class="flag"><b>점검 필요</b><ul>${p.warnings.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
   return `<section class="card">
     <div class="bar" style="background:${c}"></div>
     <div class="card-head">
@@ -184,11 +193,17 @@ function card(p){
       <div class="verdict" style="color:${c}"><span>${p.icon}</span><span>${esc(p.label)}</span></div>
       ${note}${payout}
     </div>
-    <div class="legs">${legs.map(legRow).join('')}
-      <div class="scale"><span>−${(RANGE*100).toFixed(0)}%</span>
-        <b>배리어 ${p.barrier?(p.barrier*100).toFixed(0)+'%':''}</b>
-        <span>+${(RANGE*100).toFixed(0)}%</span></div>
-    </div>${flags}
+    <div class="legs">${legs.map(l=>legRow(l,p)).join('')}</div>
+    ${flags}
+    <div class="chartbox">
+      <div class="t">기준가 대비 종가 추이</div>
+      <div class="s">점선 = 조기상환 트리거 / KI · 전 기초자산 표시</div>
+      <div class="periods" data-pid="${esc(p.id)}">
+        <button data-d="30">30일</button><button data-d="90">90일</button>
+        <button data-d="180" aria-pressed="true">180일</button><button data-d="9999">전체</button>
+      </div>
+      <div class="canvas-wrap"><canvas id="ch-${esc(p.id)}"></canvas></div>
+    </div>
   </section>`;
 }
 
@@ -197,45 +212,64 @@ function parseCSV(text){
   const head = lines[0].split(',');
   return lines.slice(1).map(l=>{
     const v = l.split(','), o = {};
-    head.forEach((h,i)=>{ const x=v[i]; o[h] = (h==='date'||h==='product'||h==='ticker') ? x : (x===''?null:parseFloat(x)); });
+    head.forEach((h,i)=>{ const x=v[i];
+      o[h] = (h==='date'||h==='product'||h==='ticker') ? x : (x===''?null:parseFloat(x)); });
     return o;
   });
 }
 
-let chart, HIST=[], DATA=null;
-function drawChart(days){
+let HIST=[], DATA=null; const CH={};
+function drawChart(p, days){
   const cut = new Date(Date.now()-days*864e5).toISOString().slice(0,10);
-  const sets = DATA.products.map((p,i)=>{
-    const w = p.legs.find(l=>l.is_worst); if(!w) return null;
-    const rows = HIST.filter(r=>r.product===p.id && r.ticker===w.ticker
-      && r.buf_barrier!=null && (days>=9999 || r.date>=cut)).sort((a,b)=>a.date<b.date?-1:1);
+  const sets = p.legs.map((l,i)=>{
+    const rows = HIST.filter(r=>r.product===p.id && r.ticker===l.ticker
+      && r.level_pct!=null && (days>=9999 || r.date>=cut)).sort((a,b)=>a.date<b.date?-1:1);
     if (rows.length<2) return null;
-    return {label:`${p.id} · ${w.display}`, data:rows.map(r=>({x:r.date,y:r.buf_barrier})),
+    return {label:l.display+(l.is_worst?' (worst)':''),
+      data:rows.map(r=>({x:r.date,y:r.level_pct})),
       borderColor:COLORS[i%COLORS.length], backgroundColor:COLORS[i%COLORS.length],
-      borderWidth:2, pointRadius:0, pointHoverRadius:4, tension:.15};
+      borderWidth:l.is_worst?2.4:1.5, pointRadius:0, pointHoverRadius:4, tension:.12};
   }).filter(Boolean);
 
-  const zeroLine = {id:'zeroLine', beforeDatasetsDraw(c){
-    const y = c.scales.y.getPixelForValue(0), {left,right} = c.chartArea, ctx=c.ctx;
+  const wrap = document.querySelector(`#ch-${p.id}`).parentElement;
+  if (!sets.length){ wrap.innerHTML =
+    '<p style="font-size:13px;color:var(--muted)">추이를 그리려면 관측치가 2일 이상 필요하다. 백필을 한 번 실행하면 발행일까지 소급된다.</p>'; return; }
+
+  const trig = p.barrier;
+  const ki = p.ki_ratio;
+  const lines = {id:'lines'+p.id, beforeDatasetsDraw(c){
+    const ctx=c.ctx, {left,right,bottom} = c.chartArea;
+    const yT = c.scales.y.getPixelForValue(trig);
     ctx.save();
-    ctx.fillStyle='rgba(14,124,107,.05)'; ctx.fillRect(left,c.chartArea.top,right-left,y-c.chartArea.top);
-    ctx.fillStyle='rgba(178,58,46,.05)';  ctx.fillRect(left,y,right-left,c.chartArea.bottom-y);
-    ctx.strokeStyle='#10151C'; ctx.lineWidth=1.2;
-    ctx.beginPath(); ctx.moveTo(left,y); ctx.lineTo(right,y); ctx.stroke(); ctx.restore();
+    ctx.fillStyle='rgba(178,58,46,.05)'; ctx.fillRect(left,yT,right-left,bottom-yT);
+    ctx.setLineDash([5,3]); ctx.strokeStyle='#10151C'; ctx.lineWidth=1.1;
+    ctx.beginPath(); ctx.moveTo(left,yT); ctx.lineTo(right,yT); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle='#10151C'; ctx.font='11px IBM Plex Mono';
+    ctx.fillText(`트리거 ${(trig*100).toFixed(0)}%`, left+4, yT-4);
+    if (ki!=null && ki>=c.scales.y.min){
+      const yK = c.scales.y.getPixelForValue(ki);
+      ctx.setLineDash([2,3]); ctx.strokeStyle='#3A2E4A';
+      ctx.beginPath(); ctx.moveTo(left,yK); ctx.lineTo(right,yK); ctx.stroke();
+      ctx.setLineDash([]); ctx.fillStyle='#3A2E4A';
+      ctx.fillText(`KI ${(ki*100).toFixed(0)}%`, left+4, yK-4);
+    }
+    ctx.restore();
   }};
 
-  if (chart) chart.destroy();
-  if (!sets.length){ $('#canvas-wrap').innerHTML =
-    '<p style="font-size:13px;color:var(--muted)">추이를 그리려면 관측치가 2일 이상 필요하다. <code>python backfill.py</code>를 한 번 실행하면 발행일까지 소급된다.</p>'; return; }
-  chart = new Chart($('#chart'), {type:'line', data:{datasets:sets}, plugins:[zeroLine],
+  if (CH[p.id]) CH[p.id].destroy();
+  // y축은 데이터+트리거로만 잡는다. KI(25~35%)를 강제로 넣으면 중요한 구간이 눌린다.
+  const ys = sets.flatMap(s=>s.data.map(d=>d.y)).concat([trig]);
+  const lo=Math.min(...ys), hi=Math.max(...ys), pad=(hi-lo)*0.14||0.05;
+  CH[p.id] = new Chart($('#ch-'+p.id), {type:'line', data:{datasets:sets}, plugins:[lines],
     options:{responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
       scales:{
         x:{type:'category', labels:[...new Set(sets.flatMap(s=>s.data.map(d=>d.x)))].sort(),
-           ticks:{maxTicksLimit:7,font:{family:"'IBM Plex Mono'",size:10},color:'#69726B'},
+           ticks:{maxTicksLimit:6,font:{family:"'IBM Plex Mono'",size:10},color:'#69726B'},
            grid:{display:false}},
-        y:{ticks:{callback:v=>(v*100).toFixed(0)+'%',font:{family:"'IBM Plex Mono'",size:10},color:'#69726B'},
+        y:{min:lo-pad, max:hi+pad,
+           ticks:{callback:v=>(v*100).toFixed(0)+'%',font:{family:"'IBM Plex Mono'",size:10},color:'#69726B'},
            grid:{color:'#E3E7DF'},border:{display:false}}},
-      plugins:{legend:{position:'bottom',labels:{boxWidth:10,boxHeight:10,font:{size:11},padding:14}},
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,boxHeight:10,font:{size:11},padding:12}},
         tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${(c.parsed.y*100).toFixed(2)}%`}}}}});
 }
 
@@ -247,14 +281,13 @@ async function boot(){
   }catch(e){
     $('#meta').textContent = '데이터 없음';
     $('#main').innerHTML = `<div class="state"><h2>아직 생성된 데이터가 없다</h2>
-      <p style="font-size:13px;color:var(--muted)"><code>python main.py</code>를 한 번 실행하면
-      <code>docs/data/</code>에 리포트가 생긴다. 추이까지 보려면 <code>python backfill.py</code>를 먼저 돌린다.</p></div>`;
+      <p style="font-size:13px;color:var(--muted)">Actions에서 <code>ELS Report</code>를 한 번 실행하면
+      <code>docs/data/</code>에 리포트가 생긴다.</p></div>`;
     return;
   }
   try{ HIST = parseCSV(await (await fetch('data/history.csv',{cache:'no-store'})).text()); }catch(e){ HIST=[]; }
 
-  const s = DATA.summary, c = s.counts;
-  const chips = [];
+  const s = DATA.summary, c = s.counts, chips = [];
   if(c.likely)   chips.push(`상환유력 ${c.likely}`);
   if(c.watch)    chips.push(`경계 ${c.watch}`);
   if(c.hopeless) chips.push(`난망 ${c.hopeless}`);
@@ -264,33 +297,25 @@ async function boot(){
     chips.map(t=>`<span class="pill">${t}</span>`).join('') +
     (s.nearest_dday!=null?`<span class="pill">최근접 D-${s.nearest_dday}</span>`:'');
 
-  $('#main').innerHTML = DATA.products.map(card).join('') + `
-    <section class="chart-card">
-      <div class="chart-head">
-        <div><h2>배리어 여유율 추이</h2><p>worst-of 기준 · 0선 위가 조기상환 구간</p></div>
-        <div class="periods" id="periods">
-          <button data-d="30">30일</button><button data-d="90">90일</button>
-          <button data-d="180" aria-pressed="true">180일</button><button data-d="9999">전체</button>
-        </div>
-      </div>
-      <div class="canvas-wrap" id="canvas-wrap"><canvas id="chart"></canvas></div>
-    </section>` +
+  $('#main').innerHTML = DATA.products.map(card).join('') +
     (DATA.comment ? `<section class="ai"><div class="eyebrow">AI 코멘트</div>
       <p>${esc(DATA.comment)}</p><small>참고용 요약이며 투자판단의 근거가 아니다. 수치는 위 카드가 원본.</small></section>` : '');
 
-  drawChart(180);
-  $('#periods').addEventListener('click', e=>{
-    const b = e.target.closest('button'); if(!b) return;
-    [...e.currentTarget.children].forEach(x=>x.removeAttribute('aria-pressed'));
-    b.setAttribute('aria-pressed','true');
-    drawChart(+b.dataset.d);
+  DATA.products.forEach(p=>{
+    drawChart(p, 180);
+    const box = document.querySelector(`.periods[data-pid="${p.id}"]`);
+    box.addEventListener('click', e=>{
+      const b = e.target.closest('button'); if(!b) return;
+      [...box.children].forEach(x=>x.removeAttribute('aria-pressed'));
+      b.setAttribute('aria-pressed','true');
+      drawChart(p, +b.dataset.d);
+    });
   });
 
-  // 마커를 중앙(배리어)에서 제자리로 — 한 번만 일어나는 오케스트레이션
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  document.querySelectorAll('.dot').forEach((d,i)=>{
-    if (reduce) { d.style.left = d.dataset.x + '%'; return; }
-    setTimeout(()=>{ d.style.left = d.dataset.x + '%'; }, 90 + i*55);
+  document.querySelectorAll('.barfill[data-w]').forEach((d,i)=>{
+    if (reduce) { d.style.width = d.dataset.w + '%'; return; }
+    setTimeout(()=>{ d.style.width = d.dataset.w + '%'; }, 90 + i*55);
   });
 }
 boot();

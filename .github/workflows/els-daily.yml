@@ -1,17 +1,22 @@
-name: ELS daily report
+name: ELS Report
 
 on:
   schedule:
-    # 22:00 UTC = 익일 07:00 KST. UTC 일~목 = KST 월~금.
+    # 22:00 UTC = 07:00 KST next day. UTC Sun-Thu = KST Mon-Fri.
     - cron: "0 22 * * 0,1,2,3,4"
-  workflow_dispatch:          # 수동 실행 버튼
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: "Run backfill first (only needed once)"
+        type: boolean
+        default: false
 
 permissions:
-  contents: write             # history.csv / docs 커밋용
+  contents: write
 
 concurrency:
   group: els-daily
-  cancel-in-progress: false   # 리포트는 겹쳐도 취소하지 않는다
+  cancel-in-progress: false
 
 jobs:
   report:
@@ -24,7 +29,8 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      # ⚠️ 이게 없으면 차트의 한글 축·범례가 전부 두부(□□□)로 나온다
+      # Ubuntu runners have no Korean font.
+      # Without this the chart axes render as tofu boxes.
       - name: Install Korean fonts
         run: |
           sudo apt-get update -qq
@@ -33,6 +39,10 @@ jobs:
 
       - name: Install deps
         run: pip install -r requirements.txt
+
+      - name: Backfill history (manual, once)
+        if: inputs.backfill
+        run: python backfill.py
 
       - name: Run report
         env:
@@ -52,7 +62,7 @@ jobs:
           git config user.email "els-bot@users.noreply.github.com"
           git add data/ docs/data/
           if git diff --staged --quiet; then
-            echo "변경 없음 (휴장일일 수 있음)"
+            echo "No changes (market holiday?)"
           else
             git commit -m "chore: ELS report $(date -u +%Y-%m-%d)"
             git push

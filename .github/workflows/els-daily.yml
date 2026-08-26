@@ -3,7 +3,7 @@ name: ELS Report
 on:
   schedule:
     # 22:00 UTC = 07:00 KST next day. UTC Sun-Thu = KST Mon-Fri.
-    - cron: "0 22 * * 0,1,2,3,4"
+    - cron: "47 21 * * 0,1,2,3,4"
   workflow_dispatch:
     inputs:
       backfill:

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-06",
+  "generated": "2026-09-07",
   "summary": {
     "counts": {
       "likely": 1,
@@ -9,7 +9,7 @@
       "matured": 0,
       "nodata": 0
     },
-    "nearest_dday": 12,
+    "nearest_dday": 11,
     "warn_count": 1
   },
   "comment": null,
@@ -22,7 +22,7 @@
       "icon": "🔴",
       "eval_no": 1,
       "eval_date": "2026-09-18",
-      "dday": 12,
+      "dday": 11,
       "barrier": 0.85,
       "coupon_cum": 0.05521095890410959,
       "payout": 5276054.794520549,
@@ -73,12 +73,12 @@
           "ticker": "^KS200",
           "display": "KOSPI200",
           "strike": 1477.22,
-          "close": 1051.52001953125,
-          "obs_date": "2026-09-04",
-          "level_pct": 0.7118235736933226,
-          "buf_barrier": -0.16256050153726753,
-          "buf_ki": 1.033781639123779,
-          "need_up": 0.19411611446041888,
+          "close": 1105.18994140625,
+          "obs_date": "2026-09-07",
+          "level_pct": 0.7481552791095775,
+          "buf_barrier": -0.11981731869461476,
+          "buf_ki": 1.1375865117416502,
+          "need_up": 0.13612778487860666,
           "barrier_px": 1255.637,
           "ki_px": 517.0269999999999,
           "is_worst": true,
@@ -98,7 +98,7 @@
       "icon": "🟢",
       "eval_no": 2,
       "eval_date": "2027-01-08",
-      "dday": 124,
+      "dday": 123,
       "barrier": 0.75,
       "coupon_cum": 0.2193972602739726,
       "payout": 3658191.780821918,

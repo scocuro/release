@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-23",
+  "generated": "2026-09-25",
   "summary": {
     "counts": {
       "likely": 1,
@@ -9,7 +9,7 @@
       "matured": 0,
       "nodata": 0
     },
-    "nearest_dday": 90,
+    "nearest_dday": 88,
     "warn_count": 2
   },
   "comment": null,
@@ -22,7 +22,7 @@
       "icon": "🔴",
       "eval_no": 2,
       "eval_date": "2026-12-22",
-      "dday": 90,
+      "dday": 88,
       "barrier": 0.85,
       "coupon_cum": 0.11481369863013699,
       "payout": 5574068.493150685,
@@ -30,7 +30,7 @@
       "is_final": false,
       "ki_ratio": 0.35,
       "warnings": [
-        "니케이225(^N225): 관측일이 5일 전(2026-09-18) — 상장폐지/티커 변경 확인"
+        "니케이225(^N225): 관측일이 7일 전(2026-09-18) — 상장폐지/티커 변경 확인"
       ],
       "legs": [
         {
@@ -56,11 +56,11 @@
           "ticker": "^GSPC",
           "display": "S&P500",
           "strike": 7472.79,
-          "close": 7706.02978515625,
-          "obs_date": "2026-09-23",
-          "level_pct": 1.0312118747022532,
-          "buf_barrier": 0.21319044082618,
-          "buf_ki": 1.9463196420064377,
+          "close": 7704.1298828125,
+          "obs_date": "2026-09-24",
+          "level_pct": 1.0309576319972193,
+          "buf_barrier": 0.21289133176143427,
+          "buf_ki": 1.9455932342777698,
           "need_up": null,
           "barrier_px": 6351.8715,
           "ki_px": 2615.4764999999998,
@@ -100,7 +100,7 @@
       "icon": "🟢",
       "eval_no": 2,
       "eval_date": "2027-01-08",
-      "dday": 107,
+      "dday": 105,
       "barrier": 0.75,
       "coupon_cum": 0.2193972602739726,
       "payout": 3658191.780821918,

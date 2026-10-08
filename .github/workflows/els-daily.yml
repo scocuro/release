@@ -2,7 +2,8 @@ name: ELS Report
 
 on:
   schedule:
-    # 22:00 UTC = 07:00 KST next day. UTC Sun-Thu = KST Mon-Fri.
+    # 21:47 UTC Sun-Thu = 06:47 KST Mon-Fri.
+    # GitHub Actions의 실제 시작 시각은 보장되지 않음.
     - cron: "47 21 * * 0,1,2,3,4"
   workflow_dispatch:
     inputs:
@@ -21,6 +22,11 @@ concurrency:
 jobs:
   report:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TZ: Asia/Seoul
+      PYTHONUNBUFFERED: "1"
+
     steps:
       - uses: actions/checkout@v4
 
@@ -29,8 +35,6 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      # Ubuntu runners have no Korean font.
-      # Without this the chart axes render as tofu boxes.
       - name: Install Korean fonts
         run: |
           sudo apt-get update -qq
@@ -45,20 +49,22 @@ jobs:
         run: python backfill.py
 
       - name: Run report
+        id: run_report
         env:
-          ELS_SMTP_HOST:      ${{ secrets.ELS_SMTP_HOST }}
-          ELS_SMTP_PORT:      ${{ secrets.ELS_SMTP_PORT }}
-          ELS_SMTP_USER:      ${{ secrets.ELS_SMTP_USER }}
-          ELS_SMTP_PASSWORD:  ${{ secrets.ELS_SMTP_PASSWORD }}
-          ELS_MAIL_FROM:      ${{ secrets.ELS_MAIL_FROM }}
-          ELS_MAIL_TO:        ${{ secrets.ELS_MAIL_TO }}
-          ANTHROPIC_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
-          ELS_DASHBOARD_URL:  ${{ vars.ELS_DASHBOARD_URL }}
+          ELS_SMTP_HOST: ${{ secrets.ELS_SMTP_HOST }}
+          ELS_SMTP_PORT: ${{ secrets.ELS_SMTP_PORT }}
+          ELS_SMTP_USER: ${{ secrets.ELS_SMTP_USER }}
+          ELS_SMTP_PASSWORD: ${{ secrets.ELS_SMTP_PASSWORD }}
+          ELS_MAIL_FROM: ${{ secrets.ELS_MAIL_FROM }}
+          ELS_MAIL_TO: ${{ secrets.ELS_MAIL_TO }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ELS_DASHBOARD_URL: ${{ vars.ELS_DASHBOARD_URL }}
         run: python main.py
 
       - name: Commit history & dashboard
+        if: ${{ !cancelled() && steps.run_report.outcome != 'skipped' }}
         run: |
-          git config user.name  "els-bot"
+          git config user.name "els-bot"
           git config user.email "els-bot@users.noreply.github.com"
           git add data/ docs/data/
           if git diff --staged --quiet; then

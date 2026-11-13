@@ -1,12 +1,12 @@
 {
   "A": {
     "status": "hopeless",
-    "dday": 40,
-    "date": "2026-11-12"
+    "dday": 39,
+    "date": "2026-11-13"
   },
   "B": {
     "status": "likely",
-    "dday": 57,
-    "date": "2026-11-12"
+    "dday": 56,
+    "date": "2026-11-13"
   }
 }
